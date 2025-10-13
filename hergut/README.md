@@ -56,6 +56,9 @@ src/
 
 ## 🚀 Getting Started
 
+### Current Status
+✅ **App is ready to run!** All screens are functional with mock data. Firebase has been temporarily removed to ensure the app runs without additional configuration.
+
 ### Prerequisites
 - Node.js (v16 or higher)
 - React Native CLI
@@ -94,13 +97,21 @@ src/
 
 ## 🔧 Configuration
 
-### Firebase Setup
-1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com)
-2. Enable Authentication, Realtime Database, and Cloud Messaging
-3. Update `src/services/firebase/config.ts` with your Firebase credentials
-4. Add your Firebase config files:
+### Firebase Setup (Optional - Currently Disabled)
+**Note**: Firebase has been temporarily removed to ensure the app runs without configuration. To add Firebase back:
+
+1. Install Firebase dependencies:
+   ```bash
+   npm install @react-native-firebase/app @react-native-firebase/auth @react-native-firebase/database @react-native-firebase/messaging
+   ```
+
+2. Create a Firebase project at [Firebase Console](https://console.firebase.google.com)
+3. Enable Authentication, Realtime Database, and Cloud Messaging
+4. Update `src/services/firebase/config.ts` with your Firebase credentials
+5. Add your Firebase config files:
    - `ios/GoogleService-Info.plist` (iOS)
    - `android/app/google-services.json` (Android)
+6. Reinstall iOS pods: `cd ios && pod install`
 
 ### Environment Variables
 Create a `.env` file in the root directory:
