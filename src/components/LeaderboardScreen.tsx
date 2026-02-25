@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { LEAGUE_INFO } from '../utils/leaguePromotion';
 
 interface LeaderboardScreenProps {
   onBack: () => void;
@@ -36,14 +37,6 @@ const MOCK_FRIENDS = [
   { rank: 4, name: 'Lisa P.', xp: 580, streak: 8, badge: 'bronze' },
   { rank: 5, name: 'Mia R.', xp: 420, streak: 6, badge: 'bronze' },
 ];
-
-const LEAGUE_INFO = {
-  bronze: { name: 'Bronze', color: '#CD7F32', minXP: 0 },
-  silver: { name: 'Silver', color: '#C0C0C0', minXP: 250 },
-  gold: { name: 'Gold', color: '#FFD700', minXP: 500 },
-  platinum: { name: 'Platinum', color: '#E5E4E2', minXP: 750 },
-  diamond: { name: 'Diamond', color: '#B9F2FF', minXP: 1000 },
-};
 
 export function LeaderboardScreen({ 
   onBack, 

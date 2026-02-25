@@ -5,14 +5,7 @@ import { Badge } from './ui/badge';
 import { Search, Plus, X, Globe, Clock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { FoodDetailsModal } from './FoodDetailsModal';
-
-export interface FoodEntry {
-  name: string;
-  time: string;
-  category: string;
-  cuisine?: string;
-  amount?: string; // portion size
-}
+import type { FoodEntry } from '../types';
 
 interface FoodTrackerProps {
   onClose: () => void;

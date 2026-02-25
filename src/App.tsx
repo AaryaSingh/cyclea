@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { SplashScreen } from './components/SplashScreen';
 import { EnhancedOnboarding } from './components/EnhancedOnboarding';
 import { HomeScreen } from './components/HomeScreen';
@@ -18,7 +18,8 @@ import { BottomNav } from './components/BottomNav';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { calculateCyclePhase } from './utils/cycleCalculations';
-import { UserData, INITIAL_USER_DATA } from './types';
+import { getLeagueForXP, getPromotedLeague } from './utils/leaguePromotion';
+import { UserData, INITIAL_USER_DATA, FoodEntry } from './types';
 import { useAuth } from './lib/supabase/auth';
 import { isSupabaseConfigured } from './lib/supabase';
 import {
@@ -41,6 +42,7 @@ function App() {
   const [showPeriodTracker, setShowPeriodTracker] = useState(false);
   const [userData, setUserData] = useState<UserData>(INITIAL_USER_DATA);
   const [selectedCheckInDate, setSelectedCheckInDate] = useState<Date | undefined>(undefined);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   // Ensure anonymous session when Supabase is configured
   useEffect(() => {
@@ -55,30 +57,38 @@ function App() {
 
     const load = async () => {
       if (isSupabaseConfigured() && userId) {
-        const profile = await fetchProfile(userId);
-        const local = loadFromLocalStorage();
-        if (profile) {
-          const isEmpty =
-            profile.checkIns.length === 0 &&
-            profile.xp === 0 &&
-            profile.foodEntries.length === 0;
-          const hasLocalData =
-            local &&
-            (local.checkIns?.length > 0 || local.xp > 0 || local.foodEntries?.length > 0);
-          if (isEmpty && hasLocalData) {
+        setIsLoadingData(true);
+        try {
+          const profile = await fetchProfile(userId);
+          const local = loadFromLocalStorage();
+          if (profile) {
+            const isEmpty =
+              profile.checkIns.length === 0 &&
+              profile.xp === 0 &&
+              profile.foodEntries.length === 0;
+            const hasLocalData =
+              local &&
+              (local.checkIns?.length > 0 || local.xp > 0 || local.foodEntries?.length > 0);
+            if (isEmpty && hasLocalData) {
+              const merged = { ...INITIAL_USER_DATA, ...local };
+              setUserData(merged);
+              setCurrentScreen('main');
+              upsertProfile(userId, merged);
+            } else {
+              setUserData({ ...INITIAL_USER_DATA, ...profile });
+              setCurrentScreen('main');
+            }
+          } else if (local) {
             const merged = { ...INITIAL_USER_DATA, ...local };
             setUserData(merged);
             setCurrentScreen('main');
             upsertProfile(userId, merged);
           } else {
-            setUserData({ ...INITIAL_USER_DATA, ...profile });
+            setUserData(INITIAL_USER_DATA);
             setCurrentScreen('main');
           }
-        } else if (local) {
-          const merged = { ...INITIAL_USER_DATA, ...local };
-          setUserData(merged);
-          setCurrentScreen('main');
-          upsertProfile(userId, merged);
+        } finally {
+          setIsLoadingData(false);
         }
       } else {
         const local = loadFromLocalStorage();
@@ -86,20 +96,35 @@ function App() {
           setUserData({ ...INITIAL_USER_DATA, ...local });
           setCurrentScreen('main');
         }
+        setIsLoadingData(false);
       }
     };
     load();
   }, [userId, authLoading]);
 
-  // Persist user data when it changes
+  const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Persist user data when it changes (debounced 600ms)
   useEffect(() => {
     if (currentScreen !== 'main') return;
 
-    if (isSupabaseConfigured() && userId) {
-      upsertProfile(userId, userData);
-    } else {
-      saveToLocalStorage(userData);
+    if (persistTimeoutRef.current) {
+      clearTimeout(persistTimeoutRef.current);
     }
+    persistTimeoutRef.current = setTimeout(() => {
+      if (isSupabaseConfigured() && userId) {
+        upsertProfile(userId, userData);
+      } else {
+        saveToLocalStorage(userData);
+      }
+      persistTimeoutRef.current = null;
+    }, 600);
+
+    return () => {
+      if (persistTimeoutRef.current) {
+        clearTimeout(persistTimeoutRef.current);
+      }
+    };
   }, [userData, currentScreen, userId]);
 
   const handleSplashContinue = () => {
@@ -166,25 +191,12 @@ function App() {
       toast.success('New badge unlocked: 50 Check-Ins! ⭐');
     }
 
-    // Check for league promotion
-    let newLeague = userData.currentLeague;
+    const newLeague = getPromotedLeague(userData.currentLeague, newXp, userData.hasLeftLeague);
     const oldLeague = userData.currentLeague;
-    if (!userData.hasLeftLeague && userData.currentLeague) {
-      if (newXp >= 1000 && userData.currentLeague !== 'diamond') {
-        newLeague = 'diamond';
-      } else if (newXp >= 750 && userData.currentLeague === 'gold') {
-        newLeague = 'platinum';
-      } else if (newXp >= 500 && userData.currentLeague === 'silver') {
-        newLeague = 'gold';
-      } else if (newXp >= 250 && userData.currentLeague === 'bronze') {
-        newLeague = 'silver';
-      }
-      
-      if (newLeague !== oldLeague) {
-        toast.success(`🎉 Promoted to ${newLeague.charAt(0).toUpperCase() + newLeague.slice(1)} League!`, {
-          description: 'You\'re climbing the ranks! Keep up the great work!',
-        });
-      }
+    if (newLeague && newLeague !== oldLeague) {
+      toast.success(`🎉 Promoted to ${newLeague.charAt(0).toUpperCase() + newLeague.slice(1)} League!`, {
+        description: 'You\'re climbing the ranks! Keep up the great work!',
+      });
     }
 
     setUserData((prev) => ({
@@ -194,7 +206,7 @@ function App() {
       badges: newBadges,
       checkIns: [...prev.checkIns, data],
       lastCheckIn: today,
-      currentLeague: newLeague,
+      currentLeague: newLeague ?? userData.currentLeague,
       leagueXP: newXp,
     }));
 
@@ -245,33 +257,19 @@ function App() {
   const handleFoodTrackerSave = (foods: FoodEntry[]) => {
     const xpEarned = 10;
     const newXp = userData.xp + xpEarned;
-    
-    // Check for league promotion
-    let newLeague = userData.currentLeague;
+    const newLeague = getPromotedLeague(userData.currentLeague, newXp, userData.hasLeftLeague);
     const oldLeague = userData.currentLeague;
-    if (!userData.hasLeftLeague && userData.currentLeague) {
-      if (newXp >= 1000 && userData.currentLeague !== 'diamond') {
-        newLeague = 'diamond';
-      } else if (newXp >= 750 && userData.currentLeague === 'gold') {
-        newLeague = 'platinum';
-      } else if (newXp >= 500 && userData.currentLeague === 'silver') {
-        newLeague = 'gold';
-      } else if (newXp >= 250 && userData.currentLeague === 'bronze') {
-        newLeague = 'silver';
-      }
-      
-      if (newLeague !== oldLeague) {
-        toast.success(`🎉 Promoted to ${newLeague.charAt(0).toUpperCase() + newLeague.slice(1)} League!`, {
-          description: 'You\'re climbing the ranks! Keep up the great work!',
-        });
-      }
+    if (newLeague && newLeague !== oldLeague) {
+      toast.success(`🎉 Promoted to ${newLeague.charAt(0).toUpperCase() + newLeague.slice(1)} League!`, {
+        description: 'You\'re climbing the ranks! Keep up the great work!',
+      });
     }
-    
+
     setUserData((prev) => ({
       ...prev,
       foodEntries: [...prev.foodEntries, ...foods],
       xp: newXp,
-      currentLeague: newLeague,
+      currentLeague: newLeague ?? userData.currentLeague,
       leagueXP: newXp,
     }));
     
@@ -316,13 +314,7 @@ function App() {
   };
 
   const handleRejoinLeague = () => {
-    // Determine league based on XP
-    let newLeague: 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' = 'bronze';
-    if (userData.xp >= 1000) newLeague = 'diamond';
-    else if (userData.xp >= 750) newLeague = 'platinum';
-    else if (userData.xp >= 500) newLeague = 'gold';
-    else if (userData.xp >= 250) newLeague = 'silver';
-    
+    const newLeague = getLeagueForXP(userData.xp);
     setUserData((prev) => ({
       ...prev,
       currentLeague: newLeague,
@@ -362,7 +354,7 @@ function App() {
 
   // Render splash screen
   if (currentScreen === 'splash') {
-    return <SplashScreen onContinue={handleSplashContinue} />;
+    return <SplashScreen onContinue={handleSplashContinue} isLoading={isLoadingData} />;
   }
 
   // Render onboarding

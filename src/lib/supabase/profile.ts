@@ -1,7 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../supabase';
 import type { UserData } from '../../types';
 import type { CheckInData } from '../../components/DailyCheckIn';
-import type { FoodEntry } from '../../components/FoodTracker';
+import type { FoodEntry } from '../../types';
 import type { PeriodData } from '../../components/PeriodTracker';
 
 const STORAGE_KEY = 'healthAppUserData';

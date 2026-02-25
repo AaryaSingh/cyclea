@@ -1,6 +1,13 @@
 import type { CheckInData } from './components/DailyCheckIn';
-import type { FoodEntry } from './components/FoodTracker';
 import type { PeriodData } from './components/PeriodTracker';
+
+export interface FoodEntry {
+  name: string;
+  time: string;
+  category: string;
+  cuisine?: string;
+  amount?: string;
+}
 
 export interface UserData {
   categories: string[];

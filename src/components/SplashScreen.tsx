@@ -1,12 +1,13 @@
 import { motion } from 'motion/react';
-import { Shield, Heart, Lock } from 'lucide-react';
+import { Shield, Heart, Lock, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 
 interface SplashScreenProps {
   onContinue: () => void;
+  isLoading?: boolean;
 }
 
-export function SplashScreen({ onContinue }: SplashScreenProps) {
+export function SplashScreen({ onContinue, isLoading }: SplashScreenProps) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FFC0D3] to-[#F487B6] flex items-center justify-center p-6">
       <motion.div
@@ -66,13 +67,20 @@ export function SplashScreen({ onContinue }: SplashScreenProps) {
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
         >
-          <Button
-            onClick={onContinue}
-            size="lg"
-            className="w-full bg-white text-[#F487B6] hover:bg-white/90"
-          >
-            Get Started
-          </Button>
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2 py-4 text-white">
+              <Loader2 className="w-6 h-6 animate-spin" />
+              <span>Loading your data...</span>
+            </div>
+          ) : (
+            <Button
+              onClick={onContinue}
+              size="lg"
+              className="w-full bg-white text-[#F487B6] hover:bg-white/90"
+            >
+              Get Started
+            </Button>
+          )}
         </motion.div>
       </motion.div>
     </div>

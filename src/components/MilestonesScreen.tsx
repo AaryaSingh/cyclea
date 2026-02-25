@@ -10,6 +10,7 @@ import { Progress } from './ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Input } from './ui/input';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
+import { LEAGUE_INFO } from '../utils/leaguePromotion';
 
 interface MilestonesScreenProps {
   onBack: () => void;
@@ -57,14 +58,6 @@ const BRONZE_LEAGUE_USERS = [
   { rank: 11, name: 'GutHealthPro', weeklyXP: 95, totalXP: 90, trend: 'down' },
   { rank: 12, name: 'NewStart2024', weeklyXP: 80, totalXP: 75, trend: 'down' },
 ];
-
-const LEAGUE_INFO = {
-  bronze: { name: 'Bronze', color: '#CD7F32', minXP: 0, emoji: '🥉' },
-  silver: { name: 'Silver', color: '#C0C0C0', minXP: 250, emoji: '🥈' },
-  gold: { name: 'Gold', color: '#FFD700', minXP: 500, emoji: '🥇' },
-  platinum: { name: 'Platinum', color: '#E5E4E2', minXP: 750, emoji: '💎' },
-  diamond: { name: 'Diamond', color: '#B9F2FF', minXP: 1000, emoji: '👑' },
-};
 
 export function MilestonesScreen({ 
   onBack, 

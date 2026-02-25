@@ -4,12 +4,7 @@ import { CheckInData } from './DailyCheckIn';
 import { Badge } from './ui/badge';
 import { Calendar, ChevronLeft, ChevronRight, Droplets, AlertCircle, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
-
-export interface FoodEntry {
-  name: string;
-  time: string;
-  category: string;
-}
+import type { FoodEntry } from '../types';
 
 interface LogHistoryScreenProps {
   onBack: () => void;
